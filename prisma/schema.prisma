@@ -1,4 +1,3 @@
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,32 +8,31 @@ datasource db {
 }
 
 model User {
-  id            String            @id
+  id            String            @id @default(cuid()) // Auto-generate a CUID for the ID
   name          String
-  email         String
+  email         String            @unique
   emailVerified Boolean
   image         String?
-  createdAt     DateTime
-  updatedAt     DateTime
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
   sessions      Session[]
   accounts      Account[]
   privateChats  PrivateChatUser[]
   groupChats    GroupChatUser[]
   messages      Message[]
 
-  @@unique([email])
   @@map("user")
 }
 
 model PrivateChat {
-  id        String            @id
+  id        String            @id @default(cuid())
   createdAt DateTime          @default(now())
   users     PrivateChatUser[]
   messages  Message[]
 }
 
 model PrivateChatUser {
-  id            String @id
+  id            String @id @default(cuid())
   userId        String
   privateChatId String
 
@@ -45,7 +43,7 @@ model PrivateChatUser {
 }
 
 model GroupChat {
-  id        String          @id
+  id        String          @id @default(cuid())
   name      String
   createdAt DateTime        @default(now())
   users     GroupChatUser[]
@@ -53,7 +51,7 @@ model GroupChat {
 }
 
 model GroupChatUser {
-  id          String @id
+  id          String @id @default(cuid())
   userId      String
   groupChatId String
 
@@ -64,7 +62,7 @@ model GroupChatUser {
 }
 
 model Message {
-  id            String   @id
+  id            String   @id @default(cuid())
   senderId      String
   privateChatId String?
   groupChatId   String?
@@ -77,22 +75,21 @@ model Message {
 }
 
 model Session {
-  id        String   @id
+  id        String   @id @default(cuid())
   expiresAt DateTime
-  token     String
-  createdAt DateTime
-  updatedAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   ipAddress String?
   userAgent String?
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([token])
   @@map("session")
 }
 
 model Account {
-  id                    String    @id
+  id                    String    @id @default(cuid())
   accountId             String
   providerId            String
   userId                String
@@ -104,19 +101,19 @@ model Account {
   refreshTokenExpiresAt DateTime?
   scope                 String?
   password              String?
-  createdAt             DateTime
-  updatedAt             DateTime
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
   @@map("account")
 }
 
 model Verification {
-  id         String    @id
+  id         String    @id @default(cuid())
   identifier String
   value      String
   expiresAt  DateTime
-  createdAt  DateTime?
-  updatedAt  DateTime?
+  createdAt  DateTime? @default(now())
+  updatedAt  DateTime? @updatedAt
 
   @@map("verification")
 }
