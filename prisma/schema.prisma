@@ -62,16 +62,27 @@ model GroupChatUser {
 }
 
 model Message {
-  id            String   @id @default(cuid())
-  senderId      String
-  privateChatId String?
-  groupChatId   String?
-  content       String
-  createdAt     DateTime @default(now())
+  id        String   @id @default(uuid())
+  senderId  String
+  content   String
+  createdAt DateTime @default(now())
 
-  sender      User         @relation(fields: [senderId], references: [id])
-  privateChat PrivateChat? @relation(fields: [privateChatId], references: [id])
-  groupChat   GroupChat?   @relation(fields: [groupChatId], references: [id])
+  privateChatId String?
+  privateChat   PrivateChat? @relation(fields: [privateChatId], references: [id])
+
+  groupChatId String?
+  groupChat   GroupChat? @relation(fields: [groupChatId], references: [id])
+
+  seenBy SeenMessage[]
+  User   User?         @relation(fields: [userId], references: [id])
+  userId String?
+}
+
+model SeenMessage {
+  id        String  @id @default(uuid())
+  userId    String
+  messageId String
+  message   Message @relation(fields: [messageId], references: [id])
 }
 
 model Session {
