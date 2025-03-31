@@ -69,14 +69,11 @@ export const chatController = new Elysia()
         orderBy: { createdAt: 'desc' },
         take: pageSize,
         skip: (pageNumber - 1) * pageSize,
-        select: {
-          id: true,
-          senderId: true,
-          content: true,
-          createdAt: true,
+        include: {
           seenBy: {
             select: {
               userId: true,
+              user: { select: { id: true, name: true } },
             },
           },
         },

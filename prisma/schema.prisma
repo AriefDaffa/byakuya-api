@@ -20,6 +20,7 @@ model User {
   privateChats  PrivateChatUser[]
   groupChats    GroupChatUser[]
   messages      Message[]
+  SeenMessage   SeenMessage[]
 
   @@map("user")
 }
@@ -79,10 +80,12 @@ model Message {
 }
 
 model SeenMessage {
-  id        String  @id @default(uuid())
+  id        String @id @default(uuid())
   userId    String
   messageId String
-  message   Message @relation(fields: [messageId], references: [id])
+
+  message Message @relation(fields: [messageId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
 }
 
 model Session {

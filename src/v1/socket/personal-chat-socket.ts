@@ -7,7 +7,7 @@ async function markMessagesAsRead(chatId: string, userId: string) {
       .findMany({
         where: {
           privateChatId: chatId,
-          seenBy: { none: { userId } }, // Find unread messages
+          seenBy: { none: { userId } },
         },
         select: { id: true },
       })
@@ -26,101 +26,72 @@ export const personalChatSocket = new Elysia().ws('/personal-chat', {
     message: t.String(),
   }),
   query: t.Object({
-    sender_id: t.String(),
-    receiver_id: t.String(),
+    user_id: t.String(),
+    room_id: t.String(),
   }),
 
   async open(ws) {
-    const { sender_id, receiver_id } = ws.data.query;
+    const { user_id, room_id } = ws.data.query;
 
-    let room = await prisma.privateChat.findFirst({
-      where: {
-        users: { every: { userId: { in: [sender_id, receiver_id] } } },
-      },
+    const room = await prisma.privateChat.findUnique({
+      where: { id: room_id },
     });
-
-    if (!room) {
-      room = await prisma.privateChat.create({
-        data: {
-          users: {
-            create: [{ userId: sender_id }, { userId: receiver_id }],
-          },
-        },
-      });
-    }
 
     if (!room) return;
 
-    (ws.data as any).roomId = room.id;
+    await markMessagesAsRead(room_id, user_id);
 
-    await markMessagesAsRead(room.id, sender_id);
-
-    ws.subscribe(`byakuya-${room.id}`);
+    ws.subscribe(`byakuya-${room_id}`);
   },
 
   async message(ws, { message }) {
-    const roomId = (ws.data as any).roomId;
-    const { sender_id, receiver_id } = ws.data.query;
-
-    if (!roomId) return;
+    const { user_id, room_id } = ws.data.query;
+    if (!room_id) return;
 
     const newMessage = await prisma.message.create({
       data: {
-        senderId: ws.data.query.sender_id,
+        senderId: user_id,
         content: message,
-        privateChatId: roomId,
+        privateChatId: room_id,
         seenBy: { create: [] },
       },
     });
 
-    await markMessagesAsRead(roomId, sender_id);
+    await markMessagesAsRead(room_id, user_id);
 
-    ws.publish(`byakuya-${roomId}`, newMessage);
-    // Notify the sender (sender_id)
-    ws.publish(`chat-list-${sender_id}`, {
-      updated: true,
-      chat: {
-        id: roomId,
-        type: 'private',
-        users: await prisma.privateChatUser.findMany({
-          where: { privateChatId: roomId },
-          select: { user: { select: { id: true, name: true, image: true } } },
-        }),
-        latestMessage: newMessage,
-        unreadCount: await prisma.message.count({
-          where: {
-            privateChatId: roomId,
-            seenBy: { none: { userId: sender_id } },
-          },
-        }),
-      },
+    const users = await prisma.privateChatUser.findMany({
+      where: { privateChatId: room_id },
+      select: { userId: true },
     });
 
-    // Notify the receiver (receiver_id)
-    ws.publish(`chat-list-${receiver_id}`, {
-      updated: true,
-      chat: {
-        id: roomId,
-        type: 'private',
-        users: await prisma.privateChatUser.findMany({
-          where: { privateChatId: roomId },
-          select: { user: { select: { id: true, name: true, image: true } } },
-        }),
-        latestMessage: newMessage,
-        unreadCount: await prisma.message.count({
-          where: {
-            privateChatId: roomId,
-            seenBy: { none: { userId: receiver_id } },
-          },
-        }),
-      },
-    });
+    for (const user of users) {
+      ws.publish(`chat-list-${user.userId}`, {
+        updated: true,
+        chat: {
+          id: room_id,
+          type: 'private',
+          users: await prisma.privateChatUser.findMany({
+            where: { privateChatId: room_id },
+            select: { user: { select: { id: true, name: true, image: true } } },
+          }),
+          latestMessage: newMessage,
+          unreadCount: await prisma.message.count({
+            where: {
+              privateChatId: room_id,
+              seenBy: { none: { userId: user.userId } },
+            },
+          }),
+        },
+      });
+    }
+
+    ws.publish(`byakuya-${room_id}`, newMessage);
   },
 
   async close(ws) {
-    const roomId = (ws.data as any).roomId;
-    if (!roomId) return;
+    const { room_id } = ws.data.query;
+    if (!room_id) return;
 
-    ws.unsubscribe(`byakuya-${roomId}`);
+    ws.unsubscribe(`byakuya-${room_id}`);
   },
 });
