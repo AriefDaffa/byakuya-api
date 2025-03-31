@@ -1,9 +1,8 @@
-import swagger from '@elysiajs/swagger';
 import cors from '@elysiajs/cors';
+import swagger from '@elysiajs/swagger';
 import { Elysia } from 'elysia';
 
 import betterAuthView from './lib/auth-view';
-import { chatSocket } from './v1/socket/chat-socket';
 import { v1Api } from './v1';
 
 const app = new Elysia()

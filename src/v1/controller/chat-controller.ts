@@ -64,6 +64,12 @@ export const chatController = new Elysia()
         return { success: false, error: 'Invalid page or limit' };
       }
 
+      const receiver = await prisma.privateChatUser.findMany({
+        include: {
+          user: true,
+        },
+      });
+
       const messages = await prisma.message.findMany({
         where: { privateChatId: room_id },
         orderBy: { createdAt: 'desc' },
@@ -85,6 +91,7 @@ export const chatController = new Elysia()
 
       return {
         success: true,
+        receiver,
         messages,
         pagination: {
           currentPage: pageNumber,
@@ -100,4 +107,7 @@ export const chatController = new Elysia()
         limit: t.Optional(t.String()),
       }),
     }
-  );
+  )
+  .post('/private-chat', async () => {}, {
+    body: t.Object({}),
+  });
