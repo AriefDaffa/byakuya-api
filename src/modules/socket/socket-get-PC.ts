@@ -21,7 +21,7 @@ async function markMessagesAsRead(chatId: string, userId: string) {
   });
 }
 
-export const personalChatSocket = new Elysia().ws('/personal-chat', {
+export const socketGetPC = new Elysia().ws('/personal-chat', {
   body: t.Object({
     message: t.String(),
   }),

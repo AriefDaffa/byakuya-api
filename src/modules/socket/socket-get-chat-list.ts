@@ -1,6 +1,6 @@
 import { Elysia, t } from 'elysia';
 
-export const chatListSocket = new Elysia().ws('/chat-list', {
+export const socketGetChatList = new Elysia().ws('/chat-list', {
   query: t.Object({
     user_id: t.String(),
   }),

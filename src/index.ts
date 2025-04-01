@@ -3,13 +3,13 @@ import swagger from '@elysiajs/swagger';
 import { Elysia } from 'elysia';
 
 import betterAuthView from './lib/auth-view';
-import { v1Api } from './v1';
+import { ApiV1 } from './routes/v1';
 
 const app = new Elysia()
   .use(cors())
   .use(swagger())
   .all('/api/auth/*', betterAuthView)
-  .use(v1Api)
+  .use(ApiV1)
   .listen(3001);
 
 console.log(
