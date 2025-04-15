@@ -20,30 +20,38 @@ export const getChatList = new Elysia().get('/chat-list', async ({ query }) => {
     },
   });
 
-  const formattedPrivateChats = await Promise.all(
-    privateChats.map(async (chat) => {
-      const unreadCount = await prisma.message.count({
-        where: {
-          privateChatId: chat.id,
-          seenBy: { none: { userId: user_id } },
-        },
-      });
+  const formattedPrivateChats = (
+    await Promise.all(
+      privateChats.map(async (chat) => {
+        const unreadCount = await prisma.message.count({
+          where: {
+            privateChatId: chat.id,
+            senderId: { not: user_id },
+            seenBy: {
+              none: {
+                userId: user_id,
+              },
+            },
+          },
+        });
 
-      return {
-        id: chat.id,
-        type: 'private',
-        users: chat.users
-          .filter((u) => u.user.id !== user_id)
-          .map((u) => ({
-            id: u.user.id,
-            name: u.user.name,
-            image: u.user.image,
-          })),
-        latestMessage: chat.messages[0] || null,
-        unreadCount,
-      };
-    })
-  );
+        const otherUser = chat.users.find((u) => u.user.id !== user_id);
+        if (!otherUser) return null;
+
+        return {
+          id: chat.id,
+          type: 'private',
+          user: {
+            id: otherUser.user.id,
+            name: otherUser.user.name,
+            image: otherUser.user.image,
+          },
+          latestMessage: chat.messages[0] || null,
+          unreadCount,
+        };
+      })
+    )
+  ).filter(Boolean);
 
   return successResponse(formattedPrivateChats, 'Successfully get chat List');
 });

@@ -48,44 +48,81 @@ export const socketGetPC = new Elysia().ws('/personal-chat', {
     const { user_id, room_id } = ws.data.query;
     if (!room_id) return;
 
-    const newMessage = await prisma.message.create({
-      data: {
-        senderId: user_id,
-        content: message,
-        privateChatId: room_id,
-        seenBy: { create: [] },
-      },
-    });
+    const messageToSend = {
+      id: `temp-${Date.now()}`, // temporary id until DB save returns actual id
+      content: message,
+      senderId: user_id,
+      privateChatId: room_id,
+      createdAt: new Date(),
+      seenBy: [],
+    };
 
-    await markMessagesAsRead(room_id, user_id);
+    // Send message first
+    ws.publish(`byakuya-${room_id}`, messageToSend);
 
-    const users = await prisma.privateChatUser.findMany({
-      where: { privateChatId: room_id },
-      select: { userId: true },
-    });
-
-    for (const user of users) {
-      ws.publish(`chat-list-${user.userId}`, {
-        updated: true,
-        chat: {
-          id: room_id,
-          type: 'private',
-          users: await prisma.privateChatUser.findMany({
-            where: { privateChatId: room_id },
-            select: { user: { select: { id: true, name: true, image: true } } },
-          }),
-          latestMessage: newMessage,
-          unreadCount: await prisma.message.count({
-            where: {
-              privateChatId: room_id,
-              seenBy: { none: { userId: user.userId } },
-            },
-          }),
+    // Save to DB in the background
+    (async () => {
+      const newMessage = await prisma.message.create({
+        data: {
+          senderId: user_id,
+          content: message,
+          privateChatId: room_id,
+          seenBy: { create: [] },
         },
       });
-    }
 
-    ws.publish(`byakuya-${room_id}`, newMessage);
+      await markMessagesAsRead(room_id, user_id);
+
+      const users = await prisma.privateChatUser.findMany({
+        where: { privateChatId: room_id },
+        select: { userId: true },
+      });
+
+      for (const user of users) {
+        ws.publish(`chat-list-${user.userId}`, {
+          updated: true,
+          chat: {
+            id: room_id,
+            type: 'private',
+            users: await prisma.privateChatUser.findMany({
+              where: { privateChatId: room_id },
+              select: {
+                user: { select: { id: true, name: true, image: true } },
+              },
+            }),
+            user: (
+              await prisma.privateChatUser.findFirst({
+                where: {
+                  privateChatId: room_id,
+                  userId: { not: user.userId },
+                },
+                select: {
+                  user: {
+                    select: {
+                      id: true,
+                      name: true,
+                      image: true,
+                    },
+                  },
+                },
+              })
+            )?.user,
+            latestMessage: newMessage,
+            unreadCount: await prisma.message.count({
+              where: {
+                privateChatId: room_id,
+                senderId: { not: user.userId },
+                seenBy: {
+                  none: {
+                    userId: user.userId,
+                  },
+                },
+              },
+            }),
+          },
+        });
+      }
+    })();
   },
 
   async close(ws) {
