@@ -49,7 +49,7 @@ export const socketGetPC = new Elysia().ws('/personal-chat', {
     if (!room_id) return;
 
     const messageToSend = {
-      id: `temp-${Date.now()}`, // temporary id until DB save returns actual id
+      id: `temp-${Date.now()}`,
       content: message,
       senderId: user_id,
       privateChatId: room_id,
@@ -57,10 +57,8 @@ export const socketGetPC = new Elysia().ws('/personal-chat', {
       seenBy: [],
     };
 
-    // Send message first
     ws.publish(`byakuya-${room_id}`, messageToSend);
 
-    // Save to DB in the background
     (async () => {
       const newMessage = await prisma.message.create({
         data: {
