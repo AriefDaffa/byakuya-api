@@ -2,7 +2,7 @@ FROM oven/bun:1.0.33
 
 WORKDIR /app
 
-COPY backend/package.json backend/bun.lockb ./
+COPY package.json bun.lockb ./
 RUN bun install
 
 COPY backend .
