@@ -10,4 +10,5 @@ COPY . .
 EXPOSE 3001
 
 # Run migration then start the server
-CMD bunx prisma migrate deploy && bun run start
+CMD bunx prisma generate && bunx prisma migrate deploy && bun run start
+
