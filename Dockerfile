@@ -5,7 +5,7 @@ WORKDIR /app
 COPY package.json bun.lockb ./
 RUN bun install
 
-COPY backend .
+COPY . .
 
 EXPOSE 3001
 
