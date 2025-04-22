@@ -6,7 +6,14 @@ import betterAuthView from './lib/auth-view';
 import { ApiV1 } from './routes/v1';
 
 const app = new Elysia()
-  .use(cors({ origin: process.env.ORIGIN_URL, credentials: true }))
+  .use(
+    cors({
+      origin: process.env.ORIGIN_URL,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      credentials: true,
+      allowedHeaders: ['Content-Type', 'Authorization'],
+    })
+  )
   .use(swagger())
   .all('/api/auth/*', betterAuthView)
   .use(ApiV1)
