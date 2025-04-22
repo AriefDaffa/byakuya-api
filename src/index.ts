@@ -9,7 +9,7 @@ import { auth } from './lib/auth';
 const app = new Elysia()
   .use(
     cors({
-      origin: 'http://103.127.137.118:3000',
+      origin: ['http://localhost:3000', 'http://103.127.137.118:3000'],
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
       credentials: true,
       allowedHeaders: ['Content-Type', 'Authorization'],
