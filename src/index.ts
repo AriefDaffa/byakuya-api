@@ -6,6 +6,7 @@ import betterAuthView from './lib/auth-view';
 import { ApiV1 } from './routes/v1';
 import { auth } from './lib/auth';
 
+console.log('test');
 const app = new Elysia()
   .use(
     cors({
