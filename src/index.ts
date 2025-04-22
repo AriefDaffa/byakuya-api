@@ -4,16 +4,18 @@ import { Elysia } from 'elysia';
 
 import betterAuthView from './lib/auth-view';
 import { ApiV1 } from './routes/v1';
+import { auth } from './lib/auth';
 
 const app = new Elysia()
   .use(
     cors({
-      origin: process.env.ORIGIN_URL,
+      origin: 'http://103.127.137.118:3000',
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
       credentials: true,
       allowedHeaders: ['Content-Type', 'Authorization'],
     })
   )
+  .mount(auth.handler)
   .use(swagger())
   .all('/api/auth/*', betterAuthView)
   .use(ApiV1)
