@@ -15,4 +15,7 @@ export const auth = betterAuth({
   advanced: {
     cookiePrefix: 'byakuya-cookies',
   },
+  session: {
+    expiresIn: 60 * 60 * 24 * 1, // 1 days
+  },
 });

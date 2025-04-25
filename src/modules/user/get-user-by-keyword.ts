@@ -1,8 +1,9 @@
 import { Elysia, t } from 'elysia';
 import { prisma } from '../../lib/prisma';
+import { authMid } from '../../middleware/auth-middleware';
 import { errorResponse, successResponse } from '../../utils/response';
 
-export const getUserByKeyword = new Elysia().post(
+export const getUserByKeyword = new Elysia().use(authMid).post(
   '/user/search',
   async ({ body, set }) => {
     const { keyword } = body;
@@ -39,5 +40,6 @@ export const getUserByKeyword = new Elysia().post(
     body: t.Object({
       keyword: t.String(),
     }),
+    auth: true,
   }
 );
