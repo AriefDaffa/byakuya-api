@@ -15,7 +15,7 @@ export const auth = betterAuth({
   advanced: {
     cookiePrefix: 'byakuya-cookies',
     defaultCookieAttributes: {
-      domain: process.env.BYAKUYA_API_COOKIE_DOMAIN,
+      domain: 'byakuya.ariefdaffa.dev',
     },
   },
   session: {
