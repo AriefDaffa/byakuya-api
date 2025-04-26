@@ -14,10 +14,18 @@ export const auth = betterAuth({
   }),
   advanced: {
     cookiePrefix: 'byakuya-cookies',
+    crossSubDomainCookies: {
+      enabled: true,
+      domain: '.ariefdaffa.dev',
+    },
     defaultCookieAttributes: {
-      domain: 'byakuya.ariefdaffa.dev',
+      secure: true,
+      httpOnly: true,
+      sameSite: 'none',
+      partitioned: true,
     },
   },
+  trustedOrigins: ['https://ariefdaffa.dev', 'https://byakuya.ariefdaffa.dev'],
   session: {
     expiresIn: 60 * 60 * 24 * 1, // 1 days
   },
