@@ -1,10 +1,11 @@
 import { Elysia, t } from 'elysia';
 import { prisma } from '../../lib/prisma';
 import { errorResponse, successResponse } from '../../utils/response';
+import { authMid } from '../../middleware/auth-middleware';
 
-export const getPrivateChat = new Elysia().get(
+export const getPrivateChat = new Elysia().use(authMid).get(
   '/private-chat',
-  async ({ query }) => {
+  async ({ query, user }) => {
     const { room_id, page = '1', limit = '15' } = query;
 
     const pageNumber = parseInt(page);
@@ -20,6 +21,9 @@ export const getPrivateChat = new Elysia().get(
     }
 
     const receiver = await prisma.privateChatUser.findMany({
+      where: {
+        privateChatId: room_id,
+      },
       include: {
         user: true,
       },
@@ -63,5 +67,6 @@ export const getPrivateChat = new Elysia().get(
       page: t.Optional(t.String()),
       limit: t.Optional(t.String()),
     }),
+    auth: true,
   }
 );

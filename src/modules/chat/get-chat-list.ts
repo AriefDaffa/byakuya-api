@@ -5,15 +5,15 @@ import { authMid } from '../../middleware/auth-middleware';
 
 export const getChatList = new Elysia().use(authMid).get(
   '/chat-list',
-  async ({ query }) => {
-    const { user_id } = query;
-
+  async ({ user }) => {
     const privateChats = await prisma.privateChat.findMany({
-      where: { users: { some: { userId: user_id } } },
+      where: { users: { some: { userId: user.id } } },
       include: {
         users: {
           select: {
-            user: { select: { id: true, name: true, image: true } },
+            user: {
+              select: { id: true, name: true, image: true, email: true },
+            },
           },
         },
         messages: {
@@ -29,16 +29,16 @@ export const getChatList = new Elysia().use(authMid).get(
           const unreadCount = await prisma.message.count({
             where: {
               privateChatId: chat.id,
-              senderId: { not: user_id },
+              senderId: { not: user.id },
               seenBy: {
                 none: {
-                  userId: user_id,
+                  userId: user.id,
                 },
               },
             },
           });
 
-          const otherUser = chat.users.find((u) => u.user.id !== user_id);
+          const otherUser = chat.users.find((u) => u.user.id !== user.id);
           if (!otherUser) return null;
 
           return {
@@ -48,6 +48,7 @@ export const getChatList = new Elysia().use(authMid).get(
               id: otherUser.user.id,
               name: otherUser.user.name,
               image: otherUser.user.image,
+              email: otherUser.user.email,
             },
             latestMessage: chat.messages[0] || null,
             unreadCount,

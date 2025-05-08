@@ -85,7 +85,9 @@ export const socketGetPC = new Elysia().ws('/personal-chat', {
             users: await prisma.privateChatUser.findMany({
               where: { privateChatId: room_id },
               select: {
-                user: { select: { id: true, name: true, image: true } },
+                user: {
+                  select: { id: true, name: true, image: true, email: true },
+                },
               },
             }),
             user: (
@@ -100,6 +102,7 @@ export const socketGetPC = new Elysia().ws('/personal-chat', {
                       id: true,
                       name: true,
                       image: true,
+                      email: true,
                     },
                   },
                 },
