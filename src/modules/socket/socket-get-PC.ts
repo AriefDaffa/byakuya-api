@@ -1,135 +1,156 @@
 import { Elysia, t } from 'elysia';
 import { prisma } from '../../lib/prisma';
+import { authMid } from '../../middleware/auth-middleware';
+import { app } from '../..';
 
-async function markMessagesAsRead(chatId: string, userId: string) {
-  await prisma.seenMessage.createMany({
-    data: await prisma.message
-      .findMany({
+// async function markMessagesAsRead(chatId: string, userId: string) {
+//   await prisma.seenMessage.createMany({
+//     data: await prisma.message
+//       .findMany({
+//         where: {
+//           privateChatId: chatId,
+//           seenBy: { none: { userId } },
+//         },
+//         select: { id: true },
+//       })
+//       .then((messages) =>
+//         messages.map((msg) => ({
+//           userId,
+//           messageId: msg.id,
+//         }))
+//       ),
+//     skipDuplicates: true,
+//   });
+// }
+
+export const socketGetPC = new Elysia()
+  .use(authMid)
+  .state('room_id', '')
+  .ws('/personal-chat', {
+    body: t.Object({
+      message: t.String(),
+    }),
+    query: t.Object({
+      receiver: t.String(),
+    }),
+    auth: true,
+
+    async beforeHandle({ query, status, user }) {
+      const { receiver } = query;
+
+      const findUserID = await prisma.privateChatUser.findFirst({
         where: {
-          privateChatId: chatId,
-          seenBy: { none: { userId } },
+          userId: receiver,
         },
-        select: { id: true },
-      })
-      .then((messages) =>
-        messages.map((msg) => ({
-          userId,
-          messageId: msg.id,
-        }))
-      ),
-    skipDuplicates: true,
-  });
-}
+      });
 
-export const socketGetPC = new Elysia().ws('/personal-chat', {
-  body: t.Object({
-    message: t.String(),
-  }),
-  query: t.Object({
-    user_id: t.String(),
-    room_id: t.String(),
-  }),
+      if (!findUserID || user.id === receiver) {
+        return status(400);
+      }
+    },
 
-  async open(ws) {
-    const { user_id, room_id } = ws.data.query;
+    async open(ws) {
+      const { receiver } = ws.data.query;
+      const { id, name } = ws.data.user;
 
-    const room = await prisma.privateChat.findUnique({
-      where: { id: room_id },
-    });
+      const findRoom = await prisma.privateChat.findFirst({
+        where: {
+          users: {
+            some: { userId: id },
+          },
+          AND: {
+            users: {
+              some: { userId: receiver },
+            },
+          },
+        },
+      });
 
-    if (!room) return;
+      if (findRoom) {
+        ws.data.store = {
+          room_id: findRoom.id,
+        };
+      } else {
+        const room = await prisma.privateChat.create({
+          data: {},
+        });
 
-    await markMessagesAsRead(room_id, user_id);
+        await prisma.privateChatUser.createMany({
+          data: [
+            { userId: id, privateChatId: room.id },
+            { userId: receiver, privateChatId: room.id },
+          ],
+          skipDuplicates: true,
+        });
 
-    ws.subscribe(`byakuya-${room_id}`);
-  },
+        ws.data.store = {
+          room_id: room.id,
+        };
+      }
 
-  async message(ws, { message }) {
-    const { user_id, room_id } = ws.data.query;
-    if (!room_id) return;
+      ws.send(`Subscibed to ${ws.data.store.room_id}`);
+      ws.send(`Joined as ${name}`);
+      ws.subscribe(`byakuya-${ws.data.store.room_id}`);
+    },
 
-    const messageToSend = {
-      id: `temp-${Date.now()}`,
-      content: message,
-      senderId: user_id,
-      privateChatId: room_id,
-      createdAt: new Date(),
-      seenBy: [],
-    };
+    async message(ws, { message }) {
+      const { receiver } = ws.data.query;
+      const { room_id } = ws.data.store;
+      const { id } = ws.data.user;
 
-    ws.publish(`byakuya-${room_id}`, messageToSend);
-
-    (async () => {
-      const newMessage = await prisma.message.create({
+      const msg = await prisma.message.create({
         data: {
-          senderId: user_id,
+          senderId: id,
           content: message,
           privateChatId: room_id,
           seenBy: { create: [] },
         },
-      });
-
-      await markMessagesAsRead(room_id, user_id);
-
-      const users = await prisma.privateChatUser.findMany({
-        where: { privateChatId: room_id },
-        select: { userId: true },
-      });
-
-      for (const user of users) {
-        ws.publish(`chat-list-${user.userId}`, {
-          updated: true,
-          chat: {
-            id: room_id,
-            type: 'private',
-            users: await prisma.privateChatUser.findMany({
-              where: { privateChatId: room_id },
-              select: {
-                user: {
-                  select: { id: true, name: true, image: true, email: true },
+        include: {
+          privateChat: {
+            include: {
+              users: {
+                include: {
+                  user: true,
                 },
               },
-            }),
-            user: (
-              await prisma.privateChatUser.findFirst({
-                where: {
-                  privateChatId: room_id,
-                  userId: { not: user.userId },
-                },
-                select: {
-                  user: {
-                    select: {
-                      id: true,
-                      name: true,
-                      image: true,
-                      email: true,
-                    },
-                  },
-                },
-              })
-            )?.user,
-            latestMessage: newMessage,
-            unreadCount: await prisma.message.count({
-              where: {
-                privateChatId: room_id,
-                senderId: { not: user.userId },
-                seenBy: {
-                  none: {
-                    userId: user.userId,
-                  },
-                },
-              },
-            }),
+            },
           },
-        });
-      }
-    })();
-  },
+        },
+      });
 
-  async close(ws) {
-    const { room_id } = ws.data.query;
-    if (!room_id) return;
+      const senderData = msg.privateChat?.users.find(
+        (item) => item.userId === id
+      );
 
-    ws.unsubscribe(`byakuya-${room_id}`);
-  },
-});
+      const receiverData = msg.privateChat?.users.find(
+        (item) => item.userId === receiver
+      );
+
+      app.server?.publish(
+        `byakuya-${room_id}`,
+        JSON.stringify({
+          id: msg.id,
+          content: msg.content,
+          createdAt: msg.createdAt,
+          privateChatId: msg.privateChatId,
+          sender: {
+            id: senderData?.user.id,
+            name: senderData?.user.name,
+            email: senderData?.user.email,
+            image: senderData?.user.image,
+          },
+          receiver: {
+            id: receiverData?.user.id,
+            name: receiverData?.user.name,
+            email: receiverData?.user.email,
+            image: receiverData?.user.image,
+          },
+        })
+      );
+    },
+
+    async close(ws) {
+      const { room_id } = ws.data.store;
+      ws.unsubscribe(`byakuya-${room_id}`);
+    },
+  });

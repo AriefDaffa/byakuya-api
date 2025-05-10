@@ -4,9 +4,8 @@ import { Elysia } from 'elysia';
 
 import betterAuthView from './lib/auth-view';
 import { ApiV1 } from './routes/v1';
-import { auth } from './lib/auth';
 
-const app = new Elysia()
+export const app = new Elysia()
   .use(
     cors({
       origin: process.env.ORIGIN_URL,
