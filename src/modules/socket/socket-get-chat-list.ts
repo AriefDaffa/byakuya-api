@@ -1,16 +1,16 @@
 import { Elysia, t } from 'elysia';
+import { authMid } from '../../middleware/auth-middleware';
 
-export const socketGetChatList = new Elysia().ws('/chat-list', {
-  query: t.Object({
-    user_id: t.String(),
-  }),
+export const socketGetChatList = new Elysia().use(authMid).ws('/chat-list', {
+  auth: true,
+
   async open(ws) {
-    const { user_id } = ws.data.query;
+    const { id } = ws.data.user;
 
-    ws.subscribe(`chat-list-${user_id}`);
+    ws.subscribe(`byakuya-list-${id}`);
   },
   async close(ws) {
-    const { user_id } = ws.data.query;
-    ws.unsubscribe(`chat-list-${user_id}`);
+    const { id } = ws.data.user;
+    ws.unsubscribe(`byakuya-list-${id}`);
   },
 });

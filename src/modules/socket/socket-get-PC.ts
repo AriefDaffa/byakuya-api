@@ -147,6 +147,21 @@ export const socketGetPC = new Elysia()
           },
         })
       );
+
+      app.server?.publish(
+        `byakuya-list-${receiverData?.user.id}`,
+        JSON.stringify({
+          id: senderData?.user.id,
+          name: senderData?.user.name,
+          email: senderData?.user.email,
+          image: senderData?.user.image,
+          latestMessage: {
+            id: msg.id,
+            content: msg.content,
+            createdAt: msg.createdAt,
+          },
+        })
+      );
     },
 
     async close(ws) {
