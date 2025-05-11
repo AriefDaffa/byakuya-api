@@ -52,6 +52,9 @@ export const getPrivateChat = new Elysia().use(authMid).get(
       where: {
         privateChatId: room?.id,
       },
+      orderBy: { createdAt: 'desc' },
+      take: pageSize,
+      skip: (pageNumber - 1) * pageSize,
       include: {
         privateChat: {
           include: {
