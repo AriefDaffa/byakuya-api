@@ -68,12 +68,15 @@ export const getPrivateChat = new Elysia().use(authMid).get(
       },
     });
 
+    const totalMessages = await prisma.message.count({
+      where: { privateChatId: msg[0]?.privateChatId },
+    });
+
     return successResponse({
-      currentPage: 1,
-      totalPages: 1,
-      totalMessages: 0,
+      currentPage: pageNumber,
+      totalPages: Math.ceil(totalMessages / pageSize),
+      totalMessages,
       messages: msg.map((item) => {
-        console.log(item);
         const senderData = item.privateChat?.users.find(
           (el) => el.user.id === item.senderId
         );
@@ -101,51 +104,9 @@ export const getPrivateChat = new Elysia().use(authMid).get(
         };
       }),
     });
-
-    // const receiver = await prisma.privateChatUser.findMany({
-    //   where: {
-    //     privateChatId: room_id,
-    //   },
-    //   include: {
-    //     user: true,
-    //   },
-    // });
-
-    // const messages = await prisma.message.findMany({
-    //   where: { privateChatId: room_id },
-    //   orderBy: { createdAt: 'desc' },
-    //   take: pageSize,
-    //   skip: (pageNumber - 1) * pageSize,
-    //   include: {
-    //     seenBy: {
-    //       select: {
-    //         userId: true,
-    //         user: { select: { id: true, name: true } },
-    //       },
-    //     },
-    //   },
-    // });
-
-    // const totalMessages = await prisma.message.count({
-    //   where: { privateChatId: room_id },
-    // });
-
-    // return successResponse(
-    //   {
-    //     receiver,
-    //     messages,
-    //     pagination: {
-    //       currentPage: pageNumber,
-    //       totalPages: Math.ceil(totalMessages / pageSize),
-    //       totalMessages,
-    //     },
-    //   },
-    //   'Get private chat success'
-    // );
   },
   {
     query: t.Object({
-      // room_id: t.String(),
       receiver: t.String(),
       page: t.Optional(t.String()),
       limit: t.Optional(t.String()),
