@@ -20,13 +20,13 @@ export const getUserByKeyword = new Elysia().use(authMid).post(
           { email: { startsWith: keyword, mode: 'insensitive' } },
         ],
       },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        image: true,
-        privateChats: true,
-      },
+      // select: {
+      //   id: true,
+      //   name: true,
+      //   email: true,
+      //   image: true,
+      //   privateChats: true,
+      // },
     });
 
     if (users.length === 0) {

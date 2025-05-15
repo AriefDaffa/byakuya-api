@@ -71,10 +71,10 @@ export const searchChat = new Elysia().use(authMid).post(
       chat.flatMap((user) =>
         user.privateChats.flatMap((chat) =>
           chat.privateChat.messages.map((message) => ({
-            userId: user.id,
-            userName: user.name,
-            userEmail: user.email,
-            userImage: user.image,
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            image: user.image,
             messageId: message.id,
             content: message.content,
             createdAt: message.createdAt,
